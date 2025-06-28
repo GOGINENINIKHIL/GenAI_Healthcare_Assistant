@@ -1,15 +1,34 @@
-from fastapi import FastAPI, HTTPException # Added HTTPException
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from transformers import pipeline
 import torch
+from db import connect_to_mongo, close_mongo_connection, get_database
 
-# Import database connection functions
-from db import connect_to_mongo, close_mongo_connection, get_database # Import new functions
+# Import the CORS middleware
+from fastapi.middleware.cors import CORSMiddleware
 
 # Initialize FastAPI app
 app = FastAPI()
 
-# Load AI model (same as before)
+# --- START: THIS IS THE NEW SECTION TO ADD ---
+# This defines which origins (websites) are allowed to connect to your backend.
+origins = [
+    "http://localhost:5173",  # The address of your React frontend
+    "http://localhost",
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,       # Allows specific origins
+    allow_credentials=True,
+    allow_methods=["*"],         # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],         # Allows all headers
+)
+# --- END: NEW SECTION ---
+
+
+# Load AI model
 try:
     device = 0 if torch.cuda.is_available() else -1
     explainer_pipeline = pipeline("text2text-generation", model="t5-small", device=device)
@@ -18,7 +37,7 @@ except Exception as e:
     print(f"Error loading model: {e}")
     explainer_pipeline = None
 
-# Define request body model (same as before)
+# Define request body model
 class MedicalNote(BaseModel):
     medical_text: str
 
@@ -26,29 +45,22 @@ class MedicalNote(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     await connect_to_mongo()
-    # You could add other startup tasks here, like loading other resources
 
 # Event handler for application shutdown
 @app.on_event("shutdown")
 async def shutdown_event():
     await close_mongo_connection()
-    # Add other cleanup tasks here if needed
 
 @app.get("/")
 async def root():
-    # Example of how you might access the database if needed in an endpoint
-    # (though this root endpoint doesn't need it)
-    # mongo_db = await get_database()
-    # if not mongo_db:
-    #     raise HTTPException(status_code=503, detail="Database service unavailable")
     return {"message": "Hello World - GenAI Healthcare Assistant Backend is Running!"}
 
 @app.post("/explain_note")
 async def explain_note_endpoint(note: MedicalNote):
     if not explainer_pipeline:
-        raise HTTPException(status_code=503, detail="Explainer model is not available.") # Use HTTPException
+        raise HTTPException(status_code=503, detail="Explainer model is not available.")
     if not note.medical_text or not note.medical_text.strip():
-        raise HTTPException(status_code=400, detail="Medical text cannot be empty.") # Use HTTPException
+        raise HTTPException(status_code=400, detail="Medical text cannot be empty.")
 
     try:
         input_text = f"summarize: {note.medical_text}"
@@ -57,17 +69,4 @@ async def explain_note_endpoint(note: MedicalNote):
         return {"original_text": note.medical_text, "simplified_explanation": simplified_text}
     except Exception as e:
         print(f"Error during explanation: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate explanation: {str(e)}") # Use HTTPException
-
-
-# Example of an endpoint that might use the database (for future use)
-# @app.post("/test_db_insert")
-# async def test_db_insert(data: dict):
-#     mongo_db = await get_database()
-#     if not mongo_db:
-#         raise HTTPException(status_code=503, detail="Database service unavailable")
-#     try:
-#         result = await mongo_db.test_collection.insert_one(data)
-#         return {"message": "Data inserted", "inserted_id": str(result.inserted_id)}
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Database insert failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate explanation: {str(e)}")

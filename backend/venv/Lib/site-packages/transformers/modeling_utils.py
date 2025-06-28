@@ -319,7 +319,8 @@ def get_torch_context_manager_or_global_device():
     is not "cpu". This is used to infer the correct device to load the model on, in case `device_map` is not provided.
     """
     device_in_context = torch.tensor([]).device
-    default_device = torch.get_default_device()
+    # `get_default_device` was only introduced in torch>=2.3 - use cpu otherwise to align the behavior
+    default_device = torch.get_default_device() if is_torch_greater_or_equal("2.3") else torch.device("cpu")
     # This case means no context manager was used -> we still check if the default that was potentially set is not cpu
     if device_in_context == default_device:
         if default_device != torch.device("cpu"):
@@ -3532,7 +3533,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, PushToHubMixin, PeftAdapterMi
             for key, value in state_dict.items():
                 for pattern, replacement in reverse_key_mapping.items():
                     replacement = replacement.lstrip("^")  # strip off un-needed chars and patterns
-                    replacement = re.sub(r"\(.*?\)", "", pattern)
+                    replacement = re.sub(r"\(.*\)", "", replacement)
                     key, n_replace = re.subn(pattern, replacement, key)
                     # Early exit of the loop
                     if n_replace > 0:
