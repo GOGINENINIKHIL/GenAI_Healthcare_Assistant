@@ -55,11 +55,12 @@ async def shutdown_event():
 async def root():
     return {"message": "Hello World - GenAI Healthcare Assistant Backend is Running!"}
 
-
 @app.get("/patients")
 async def get_all_patients():
     mongo_db = await get_database()
-    if not mongo_db:
+
+    # CORRECTED LINE: We must check for None explicitly.
+    if mongo_db is None:
         raise HTTPException(status_code=503, detail="Database service unavailable")
 
     # Find all documents in the 'patients' collection
@@ -68,7 +69,7 @@ async def get_all_patients():
     patients_list = []
     async for patient in patients_cursor:
         # MongoDB's _id is a special ObjectId, we need to convert it to a string
-        # so it can be sent as JSON.
+        # so it can be directly sent as JSON.
         patient["_id"] = str(patient["_id"])
         patients_list.append(patient)
 
