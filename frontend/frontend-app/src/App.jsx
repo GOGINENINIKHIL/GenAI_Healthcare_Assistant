@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
 import PatientExplanation from './components/PatientExplanation';
 import PatientList from './components/PatientList';
-import PatientDetails from './components/PatientDetails'; // Import PatientDetails
+import PatientDetails from './components/PatientDetails';
 
 function App() {
-  // Add state to keep track of the currently selected patient
   const [selectedPatient, setSelectedPatient] = useState(null);
+  // --- NEW: Add state for the note to be explained ---
+  const [noteToExplain, setNoteToExplain] = useState('');
 
-  // This function will be called by PatientList when a patient is clicked
   const handlePatientSelect = (patient) => {
     setSelectedPatient(patient);
+  };
+
+  // --- NEW: Handler to receive the note text from PatientDetails ---
+  const handleExplainNote = (noteText) => {
+    // We use a timestamp to ensure React re-renders even if the same note is clicked twice
+    setNoteToExplain({ text: noteText, timestamp: Date.now() });
   };
 
   return (
@@ -20,16 +26,16 @@ function App() {
       </header>
 
       <main>
-        {/* Pass the handlePatientSelect function to the PatientList */}
         <PatientList onPatientSelect={handlePatientSelect} />
 
         <div className="mt-4">
-          {/* Pass the selected patient data to the PatientDetails component */}
-          <PatientDetails patient={selectedPatient} />
+          {/* Pass the new handler function to PatientDetails */}
+          <PatientDetails patient={selectedPatient} onExplainNote={handleExplainNote} />
         </div>
 
         <div className="mt-4">
-          <PatientExplanation />
+          {/* Pass the state down to PatientExplanation */}
+          <PatientExplanation noteToExplain={noteToExplain.text} />
         </div>
       </main>
 

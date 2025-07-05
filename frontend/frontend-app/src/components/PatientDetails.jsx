@@ -1,8 +1,6 @@
 import React from 'react';
 
-function PatientDetails({ patient }) {
-  // This component receives the selected patient as a "prop"
-  // If no patient is selected, it displays nothing.
+function PatientDetails({ patient, onExplainNote }) {
   if (!patient) {
     return (
       <div className="alert alert-info">
@@ -20,28 +18,17 @@ function PatientDetails({ patient }) {
         <p><strong>Gender:</strong> {patient.gender}</p>
         <p><strong>Date of Birth:</strong> {patient.birthDate}</p>
 
-        <h6 className="mt-4">Conditions:</h6>
-        <ul>
-          {patient.conditions.map((condition, index) => (
-            <li key={index}>{condition}</li>
-          ))}
-        </ul>
-
-        <h6 className="mt-4">Medications:</h6>
-        <ul>
-          {patient.medications.map((medication, index) => (
-            <li key={index}>{medication}</li>
-          ))}
-        </ul>
-
         <h6 className="mt-4">Clinical Report Notes:</h6>
         {patient.reports_text.length > 0 ? (
           patient.reports_text.map((report, index) => (
             <div key={index} className="p-2 mb-2 bg-light border rounded">
-              {/* We are using dangerouslySetInnerHTML because Synthea notes contain HTML tags like <div>.
-                  This is generally safe here because we trust the source of the data (our own generator),
-                  but you should be very careful using this with unknown data to prevent XSS attacks. */}
               <div dangerouslySetInnerHTML={{ __html: report }} />
+              <button 
+                className="btn btn-secondary btn-sm mt-2"
+                onClick={() => onExplainNote(report)}
+              >
+                Explain this note
+              </button>
             </div>
           ))
         ) : (
