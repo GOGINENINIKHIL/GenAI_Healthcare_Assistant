@@ -91,3 +91,24 @@ async def explain_note_endpoint(note: MedicalNote):
     except Exception as e:
         print(f"Error during explanation: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate explanation: {str(e)}")
+    
+@app.post("/summarize_note")
+async def summarize_note_endpoint(note: MedicalNote):
+    if not explainer_pipeline:
+        raise HTTPException(status_code=503, detail="AI model is not available.")
+    if not note.medical_text or not note.medical_text.strip():
+        raise HTTPException(status_code=400, detail="Medical text cannot be empty.")
+
+    try:
+        # We use the same model, but the prompt is explicitly for summarization.
+        # The "summarize: " prefix is what the t5-small model was trained on for this task.
+        input_text = f"summarize: {note.medical_text}"
+
+        summary = explainer_pipeline(input_text, max_length=100, min_length=20, do_sample=False)
+
+        summary_text = summary[0]['generated_text']
+
+        return {"original_text": note.medical_text, "summary": summary_text}
+    except Exception as e:
+        print(f"Error during summarization: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate summary: {str(e)}")

@@ -2,19 +2,17 @@ import React, { useState } from 'react';
 import PatientExplanation from './components/PatientExplanation';
 import PatientList from './components/PatientList';
 import PatientDetails from './components/PatientDetails';
+import ClinicalSummarizer from './components/ClinicalSummarizer'; // 1. Import the new component
 
 function App() {
   const [selectedPatient, setSelectedPatient] = useState(null);
-  // --- NEW: Add state for the note to be explained ---
   const [noteToExplain, setNoteToExplain] = useState('');
 
   const handlePatientSelect = (patient) => {
     setSelectedPatient(patient);
   };
 
-  // --- NEW: Handler to receive the note text from PatientDetails ---
   const handleExplainNote = (noteText) => {
-    // We use a timestamp to ensure React re-renders even if the same note is clicked twice
     setNoteToExplain({ text: noteText, timestamp: Date.now() });
   };
 
@@ -24,18 +22,30 @@ function App() {
         <h1>GenAI-Powered Healthcare Assistant</h1>
         <p className="lead">A secure AI tool for interacting with patient records.</p>
       </header>
-
+      
       <main>
-        <PatientList onPatientSelect={handlePatientSelect} />
-
+        {/* Patient-Facing Tools Section */}
+        <div className="row">
+          <div className="col-md-6">
+            <PatientList onPatientSelect={handlePatientSelect} />
+          </div>
+          <div className="col-md-6">
+            <PatientDetails patient={selectedPatient} onExplainNote={handleExplainNote} />
+          </div>
+        </div>
+        
         <div className="mt-4">
-          {/* Pass the new handler function to PatientDetails */}
-          <PatientDetails patient={selectedPatient} onExplainNote={handleExplainNote} />
+          <PatientExplanation noteToExplain={noteToExplain.text} />
         </div>
 
-        <div className="mt-4">
-          {/* Pass the state down to PatientExplanation */}
-          <PatientExplanation noteToExplain={noteToExplain.text} />
+        <hr className="my-5" />
+
+        {/* Provider-Facing Tools Section */}
+        <h2 className="text-center mb-4">Provider Tools</h2>
+        <div className="row justify-content-center">
+          <div className="col-md-8">
+            <ClinicalSummarizer /> {/* 2. Add the new component here */}
+          </div>
         </div>
       </main>
 
